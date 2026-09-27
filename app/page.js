@@ -36,6 +36,7 @@ export default function Page() {
     if (d) {
       if (d.answers) setAnswers({ ...emptyAnswers(), ...d.answers });
       if (d.plan) setPlan(d.plan);
+      if (d.plan && typeof location !== 'undefined' && location.hash === '#plan') setView('plan');
     }
     setReady(true);
   }, []);
@@ -247,12 +248,24 @@ export default function Page() {
 
 function PlanView({ plan, answers, onEdit, onRemake, onReset, copy, toast }) {
   const summaryText = useMemo(() => planToText(plan), [plan]);
+  const center = String(answers.center || '').trim();
+  const made = plan.madeAt ? new Date(plan.madeAt) : null;
+  const madeStr = made && !isNaN(made) ? `${made.getFullYear()}년 ${made.getMonth() + 1}월 ${made.getDate()}일` : '';
   return (
     <main className="wrap">
       <div className="card plan">
-        <div className="stepname">하루 자연놀이 기획안</div>
-        <h1>{plan.title}</h1>
-        <div className="concept">{plan.concept}</div>
+        <table className="sheet">
+          <thead><tr><td><div className="sheet-top" /></td></tr></thead>
+          <tbody><tr><td>
+        <div className="plan-head">
+          <div className="plan-kicker"><span className="leafmark">🍃</span> 하루 자연놀이 기획안</div>
+          <h1>{plan.title}</h1>
+          <div className="concept">{plan.concept}</div>
+          <div className="plan-meta">
+            {center && <span>{center}</span>}
+            {madeStr && <span>{madeStr} 작성</span>}
+          </div>
+        </div>
 
         <div className="sec">
           <h3>대상 · 일시 · 장소</h3>
@@ -274,7 +287,7 @@ function PlanView({ plan, answers, onEdit, onRemake, onReset, copy, toast }) {
           </div>
         )}
 
-        <div className="sec">
+        <div className="sec flowsec">
           <h3>당일 진행 흐름</h3>
           <div className="flow">
             {plan.flow.map((f, i) => (
@@ -324,7 +337,7 @@ function PlanView({ plan, answers, onEdit, onRemake, onReset, copy, toast }) {
           <ul className="check">{plan.safety.map((m, i) => <li key={i}>{m}</li>)}</ul>
         </div>
 
-        <div className="sec">
+        <div className="sec longsec">
           <div className="spread">
             <h3 style={{ flex: 1 }}>부모님 공지문</h3>
             <button className="btn ghost sm noprint" onClick={() => copy(plan.parentNotice, '공지문을')}>공지문 복사</button>
@@ -358,6 +371,13 @@ function PlanView({ plan, answers, onEdit, onRemake, onReset, copy, toast }) {
             {ALL_QUESTIONS.map((q) => `· ${q.q} ${Array.isArray(answers[q.id]) ? answers[q.id].join(', ') : answers[q.id]}`).join('\n')}
           </div>
         </details>
+          </td></tr></tbody>
+          <tfoot><tr><td><div className="sheet-bot" /></td></tr></tfoot>
+        </table>
+        <div className="print-foot">
+          <span>{center ? `${center} · ` : ''}하루 자연놀이 기획안{madeStr ? ` · ${madeStr}` : ''}</span>
+          <span>하루 자연놀이 기획 도우미</span>
+        </div>
       </div>
 
       <div className="toolbar noprint">
