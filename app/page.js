@@ -62,14 +62,16 @@ export default function Page() {
     setAnswers((prev) => ({ ...prev, [id]: v }));
   }
 
-  const cur = STEPS[step];
+  // 한 화면에 질문 하나씩: step = 전체 질문 중 몇 번째인지
+  const N = ALL_QUESTIONS.length;
+  const cur = ALL_QUESTIONS[step];
+  const group = STEPS.find((s) => s.questions.includes(cur));
+  const firstInGroup = group && group.questions[0] === cur;
   const missing = useMemo(() => {
     if (!cur) return [];
-    return cur.questions.filter((q) => {
-      if (q.type === 'text') return false; // 글쓰기는 건너뛰어도 됨
-      const v = answers[q.id];
-      return Array.isArray(v) ? v.length === 0 : !v;
-    });
+    if (cur.type === 'text') return []; // 글쓰기는 건너뛰어도 됨
+    const v = answers[cur.id];
+    return Array.isArray(v) ? (v.length === 0 ? [cur] : []) : (v ? [] : [cur]);
   }, [cur, answers]);
 
   async function callApi(body) {
@@ -97,7 +99,7 @@ export default function Page() {
     } catch (e) {
       setErr(e.message || '문제가 생겼어요.');
       setView('interview');
-      setStep(STEPS.length - 1);
+      setStep(N - 1);
     }
   }
 
@@ -123,9 +125,9 @@ export default function Page() {
     return (
       <main className="wrap">
         <div className="card hero">
-          <div className="stepname">하루 자연놀이 기획 도우미</div>
+          <div className="stepname">하루를 채우는 자연놀이! 프로그램이 아닌 일상에서도 실천하는 자연놀이 프로그램을 기획해보세요</div>
           <div className="big">
-            우리 원 여건을 <em>클릭으로</em> 답하면,
+            우리원의 상황에 <em>가장 적합한</em>
             <br />
             한 번 해 볼 수 있는 <em>하루 자연놀이 기획안</em>이 나옵니다
           </div>
@@ -141,7 +143,7 @@ export default function Page() {
               </div>
             ))}
           </div>
-          <p className="muted">질문은 네 묶음, 3~5분이면 끝납니다. 기획안에는 주제·대상·준비·당일 흐름·사전/사후 놀이·부모님 공지문·안전 점검·대안이 들어갑니다.</p>
+          <p className="muted">질문은 네 묶음 열여섯 개, 한 화면에 하나씩 답하면 3~5분이면 끝납니다. 기획안에는 주제·대상·준비·당일 흐름·사전/사후 놀이·부모님 공지문·안전 점검·대안이 들어갑니다.</p>
           <div className="row">
             <button className="btn" onClick={() => { setStep(0); setView('interview'); }}>
               {plan ? '답을 고쳐서 다시 만들기' : '인터뷰 시작하기'}
@@ -177,55 +179,64 @@ export default function Page() {
   }
 
   /* ───────── 인터뷰 ───────── */
-  const pct = Math.round(((step + 1) / STEPS.length) * 100);
+  const q = cur;
+  const pct = Math.round(((step + 1) / N) * 100);
+  const goPrev = () => {
+    if (step === 0) setView('intro');
+    else setStep(step - 1);
+    window.scrollTo(0, 0);
+  };
   return (
     <main className="wrap">
       <div className="bar"><i style={{ width: `${pct}%` }} /></div>
       <div className="spread">
-        <span className="stepname">{step + 1} / {STEPS.length}</span>
+        <span className="stepname">{step + 1} / {N} · {group.title}</span>
         <button className="btn ghost sm" onClick={() => setView('intro')}>처음 화면</button>
       </div>
       <div className="card">
-        <h2>{cur.title}</h2>
-        <p className="muted">{cur.intro}</p>
-        {cur.questions.map((q) => (
-          <div key={q.id}>
-            <div className="q">{q.q}</div>
-            {q.hint && <div className="hint">{q.hint}</div>}
-            {q.type === 'multi' && (
-              <div className="chips">
-                {q.options.map((o) => (
-                  <button key={o} type="button" className={'chipbtn' + (answers[q.id].includes(o) ? ' on' : '')} onClick={() => toggleMulti(q.id, o)}>
-                    {o}
-                  </button>
-                ))}
-              </div>
-            )}
-            {q.type === 'single' && (
-              <div className="chips">
-                {q.options.map((o) => (
-                  <button key={o} type="button" className={'chipbtn' + (answers[q.id] === o ? ' on' : '')} onClick={() => setOne(q.id, o)}>
-                    {o}
-                  </button>
-                ))}
-              </div>
-            )}
-            {q.type === 'text' && (q.short ? (
-              <input type="text" value={answers[q.id]} placeholder={q.placeholder} onChange={(e) => setText(q.id, e.target.value)} />
-            ) : (
-              <textarea value={answers[q.id]} placeholder={q.placeholder} onChange={(e) => setText(q.id, e.target.value)} />
-            ))}
-          </div>
-        ))}
+        {firstInGroup && (
+          <>
+            <h2>{group.title}</h2>
+            <p className="muted">{group.intro}</p>
+          </>
+        )}
+        <div key={q.id}>
+          <div className="q">{q.q}</div>
+          {q.hint && <div className="hint">{q.hint}</div>}
+          {q.type === 'multi' && (
+            <div className="chips">
+              {q.options.map((o) => (
+                <button key={o} type="button" className={'chipbtn' + (answers[q.id].includes(o) ? ' on' : '')} onClick={() => toggleMulti(q.id, o)}>
+                  {o}
+                </button>
+              ))}
+            </div>
+          )}
+          {q.type === 'single' && (
+            <div className="chips">
+              {q.options.map((o) => (
+                <button key={o} type="button" className={'chipbtn' + (answers[q.id] === o ? ' on' : '')} onClick={() => setOne(q.id, o)}>
+                  {o}
+                </button>
+              ))}
+            </div>
+          )}
+          {q.type === 'text' && (q.short ? (
+            <input type="text" value={answers[q.id]} placeholder={q.placeholder} onChange={(e) => setText(q.id, e.target.value)} />
+          ) : (
+            <textarea value={answers[q.id]} placeholder={q.placeholder} onChange={(e) => setText(q.id, e.target.value)} />
+          ))}
+          {q.type === 'text' && <div className="hint" style={{ marginTop: 6 }}>비워 두고 넘어가도 됩니다.</div>}
+        </div>
         {missing.length > 0 && (
-          <div className="miss">아직 안 고른 질문: {missing.map((q) => q.q.replace(/\?$/, '')).join(' / ')}</div>
+          <div className="miss">하나를 골라 주세요.</div>
         )}
         {err && <div className="err" style={{ marginTop: 12 }}>{err}</div>}
       </div>
       <div className="row">
-        {step > 0 && <button className="btn ghost" onClick={() => { setStep(step - 1); window.scrollTo(0, 0); }}>이전</button>}
-        {step < STEPS.length - 1 ? (
-          <button className="btn" disabled={missing.length > 0} onClick={() => { setStep(step + 1); window.scrollTo(0, 0); }}>다음</button>
+        <button className="btn ghost" onClick={goPrev}>← 이전</button>
+        {step < N - 1 ? (
+          <button className="btn" disabled={missing.length > 0} onClick={() => { setStep(step + 1); window.scrollTo(0, 0); }}>다음 →</button>
         ) : (
           <button className="btn" disabled={missing.length > 0} onClick={make}>기획안 만들기</button>
         )}
