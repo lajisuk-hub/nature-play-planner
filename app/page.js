@@ -265,14 +265,14 @@ function PlanView({ plan, answers, onEdit, onRemake, onReset, copy, toast }) {
         <div className="sec">
           <h3>왜 이 놀이인가</h3>
           <p>{plan.whyThis}</p>
-          {plan.evidence && plan.evidence.length > 0 && (
-            <div style={{ marginTop: 8 }}>
-              {plan.evidence.map((e, i) => (
-                <div className="ev" key={i}><b>{e.cite}</b>{e.claim}</div>
-              ))}
-            </div>
-          )}
         </div>
+
+        {plan.special && plan.special.length > 0 && (
+          <div className="sec">
+            <h3>보통 산책과 다른 점</h3>
+            <ul className="special">{plan.special.map((m, i) => <li key={i}>{m}</li>)}</ul>
+          </div>
+        )}
 
         <div className="sec">
           <h3>당일 진행 흐름</h3>
@@ -283,6 +283,12 @@ function PlanView({ plan, answers, onEdit, onRemake, onReset, copy, toast }) {
                 <div>
                   <div className="n">{f.name}</div>
                   <div className="w">{f.what}</div>
+                  {(f.senses || f.heart) && (
+                    <div className="tags">
+                      {f.senses && <span className="tag sense">👐 {f.senses}</span>}
+                      {f.heart && <span className="tag heart">💛 {f.heart}</span>}
+                    </div>
+                  )}
                   {f.tip && <div className="tip">{f.tip}</div>}
                 </div>
               </div>
@@ -374,9 +380,14 @@ function planToText(p) {
   L.push(`[${p.title}]`, p.concept, '');
   L.push(`■ 대상: ${p.target}`, `■ 일시·장소: ${p.whenWhere}`, '');
   L.push('■ 왜 이 놀이인가', p.whyThis);
-  (p.evidence || []).forEach((e) => L.push(`  - ${e.cite}: ${e.claim}`));
+  if (p.special && p.special.length) { L.push('', '■ 보통 산책과 다른 점'); p.special.forEach((m) => L.push(`- ${m}`)); }
   L.push('', '■ 당일 진행 흐름');
-  p.flow.forEach((f) => L.push(`${f.time} ${f.name}: ${f.what}${f.tip ? ` (팁: ${f.tip})` : ''}`));
+  p.flow.forEach((f) => {
+    L.push(`${f.time} ${f.name}: ${f.what}`);
+    if (f.senses) L.push(`  감각: ${f.senses}`);
+    if (f.heart) L.push(`  마음: ${f.heart}`);
+    if (f.tip) L.push(`  팁: ${f.tip}`);
+  });
   L.push('', '■ 준비물'); p.materials.forEach((m) => L.push(`- ${m}`));
   L.push('', '■ 사전 준비(원)'); p.prepCenter.forEach((m) => L.push(`☐ ${m}`));
   L.push('', '■ 사전 준비(교사)'); p.prepTeacher.forEach((m) => L.push(`☐ ${m}`));
